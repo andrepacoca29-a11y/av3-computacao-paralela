@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Benchmark - Multiplicação de Matrizes Distribuída</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #09090f;
+            color: #e0e0f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; color: #00e5ff; }
+        .subtitle { color: #5a5a7a; margin-bottom: 40px; }
+        .section { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; 
+                     padding: 30px; margin-bottom: 30px; border-top: 3px solid #00e5ff; }
+        .section h2 { font-size: 1.8em; margin-bottom: 20px; color: #00ff9d; }
+        .grafico { text-align: center; margin: 20px 0; }
+        .grafico img { max-width: 100%; height: auto; border-radius: 8px; }
+        .tabela { overflow-x: auto; margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #1e1e2e; }
+        th { background: #1e1e2e; color: #00e5ff; font-weight: bold; }
+        tr:hover { background: rgba(255,255,255,.03); }
+        .ok { color: #00ff9d; }
+        .warning { color: #ffd600; }
+        .error { color: #ff4d6d; }
+        .timestamp { color: #5a5a7a; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Relatório de Benchmark</h1>
+        <p class="subtitle">Multiplicação de Matrizes: Serial vs Paralela vs Distribuída</p>
+        <p class="timestamp">Gerado em: 16/05/2026 às 21:46:43</p>
+        
+        <div class="section">
+            <h2>Resumo dos Testes</h2>
+            <div class="tabela">
+                <table>
+                    <tr>
+                        <th>Matriz A</th>
+                        <th>Matriz B</th>
+                        <th>Tempo Serial (s)</th>
+                        <th>Tempo Paralelo (s)</th>
+                        <th>Tempo Distribuído (s)</th>
+                        <th>Speedup Paralelo</th>
+                        <th>Speedup Distribuído</th>
+                        <th>Status</th>
+                    </tr>
+
+                    <tr>
+                        <td>100×100</td>
+                        <td>100×100</td>
+                        <td>0.180749</td>
+                        <td>1.824757</td>
+                        <td>0.166639</td>
+                        <td><span class="warning">0.0991×</span></td>
+                        <td><span class="warning">1.0847×</span></td>
+                        <td><span class="ok">✓/✓</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>400×400</td>
+                        <td>400×100</td>
+                        <td>2.911200</td>
+                        <td>2.651942</td>
+                        <td>2.824347</td>
+                        <td><span class="warning">1.0978×</span></td>
+                        <td><span class="warning">1.0308×</span></td>
+                        <td><span class="ok">✓/✓</span></td>
+                    </tr>
+
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Tempos</h2>
+            <div class="grafico">
+                <img src="grafico_tempos.png" alt="tempos">
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Speedup</h2>
+            <div class="grafico">
+                <img src="grafico_speedup.png" alt="speedup">
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Eficiencia</h2>
+            <div class="grafico">
+                <img src="grafico_eficiencia.png" alt="eficiencia">
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Overhead</h2>
+            <div class="grafico">
+                <img src="grafico_overhead.png" alt="overhead">
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Escalabilidade</h2>
+            <div class="grafico">
+                <img src="grafico_escalabilidade.png" alt="escalabilidade">
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

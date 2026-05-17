@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráficos Comparativos - Multiplicação de Matrizes Distribuída</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #09090f 0%, #111118 100%);
+            color: #e0e0f0;
+            font-family: 'Syne', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 229, 255, .03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, .03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        header {
+            margin-bottom: 50px;
+            text-align: center;
+        }
+        
+        .chip {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #00e5ff;
+            border: 1px solid #00e5ff;
+            padding: 6px 12px;
+            border-radius: 2px;
+            margin-bottom: 16px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        
+        h1 {
+            font-size: 2.8em;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -.02em;
+            margin-bottom: 12px;
+        }
+        
+        h1 span {
+            color: #00e5ff;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #5a5a7a;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 10px;
+        }
+        
+        .back-button {
+            display: inline-block;
+            margin-bottom: 30px;
+            padding: 10px 20px;
+            background: rgba(0, 229, 255, .1);
+            border: 1px solid #00e5ff;
+            border-radius: 6px;
+            color: #00e5ff;
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            transition: all .15s;
+            cursor: pointer;
+        }
+        
+        .back-button:hover {
+            background: #00e5ff;
+            color: #09090f;
+        }
+        
+        .graficos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .grafico-card {
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 20px;
+            overflow: hidden;
+            transition: all .3s;
+            border-top: 3px solid #00e5ff;
+        }
+        
+        .grafico-card:hover {
+            border-color: #00ff9d;
+            border-top-color: #00ff9d;
+            box-shadow: 0 8px 32px rgba(0, 255, 157, .15);
+        }
+        
+        .grafico-titulo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #5a5a7a;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        
+        .grafico-imagem {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: #09090f;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            color: #5a5a7a;
+        }
+        
+        .grafico-imagem img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 6px;
+        }
+        
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 40px;
+            padding: 25px;
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            border-top: 3px solid #00ff9d;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+        
+        .status-icon {
+            font-size: 18px;
+        }
+        
+        .status-ok {
+            color: #00ff9d;
+        }
+        
+        .status-loading {
+            color: #ffd600;
+        }
+        
+        .status-error {
+            color: #ff4d6d;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            border-top: 1px solid #1e1e2e;
+            margin-top: 50px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #5a5a7a;
+        }
+        
+        .placeholder {
+            color: #5a5a7a;
+            text-align: center;
+            padding: 60px 20px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .placeholder-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="chip">ANÁLISE VISUAL · GRÁFICOS COMPARATIVOS</div>
+            <h1>Gráficos de <span>Desempenho</span></h1>
+            <p class="subtitle">Serial vs Paralela vs Distribuída • Análise Comparativa</p>
+            <a href="/" class="back-button">← Voltar para Testes</a>
+        </header>
+        
+        <div class="status-grid">
+            <div class="status-item status-ok">
+                <span class="status-icon">📊</span>
+                <span>Gráficos Gerados</span>
+            </div>
+            <div class="status-item" id="status-tempos">
+                <span class="status-icon loading">⏱️</span>
+                <span>Tempos de Execução</span>
+            </div>
+            <div class="status-item" id="status-speedup">
+                <span class="status-icon loading">⚡</span>
+                <span>Speedup</span>
+            </div>
+            <div class="status-item" id="status-eficiencia">
+                <span class="status-icon loading">⚙️</span>
+                <span>Eficiência</span>
+            </div>
+            <div class="status-item" id="status-overhead">
+                <span class="status-icon loading">🔗</span>
+                <span>Overhead</span>
+            </div>
+            <div class="status-item" id="status-escalabilidade">
+                <span class="status-icon loading">📈</span>
+                <span>Escalabilidade</span>
+            </div>
+        </div>
+        
+        <div class="graficos-grid">
+            <!-- Gráfico 1: Tempos -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">// Comparação de Tempos de Execução</div>
+                <div class="grafico-imagem" id="grafico-tempos">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">⏱️</div>
+                        <p>Carregando gráfico...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico 2: Speedup -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">// Speedup: Ganho de Desempenho</div>
+                <div class="grafico-imagem" id="grafico-speedup">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">⚡</div>
+                        <p>Carregando gráfico...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico 3: Eficiência -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">// Eficiência de Recursos</div>
+                <div class="grafico-imagem" id="grafico-eficiencia">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">⚙️</div>
+                        <p>Carregando gráfico...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico 4: Overhead -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">// Overhead de Comunicação (IPC)</div>
+                <div class="grafico-imagem" id="grafico-overhead">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">🔗</div>
+                        <p>Carregando gráfico...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico 5: Escalabilidade -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">// Escalabilidade: Tempo vs Tamanho</div>
+                <div class="grafico-imagem" id="grafico-escalabilidade">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">📈</div>
+                        <p>Carregando gráfico...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Espaço para mais gráficos -->
+            <div class="grafico-card">
+                <div class="grafico-titulo">// Informações de Benchmark</div>
+                <div style="padding: 20px; color: #5a5a7a;">
+                    <p style="margin-bottom: 10px;"><strong>Como gerar gráficos:</strong></p>
+                    <ol style="margin-left: 20px; line-height: 1.8;">
+                        <li>Execute testes na página principal</li>
+                        <li>Complete pelo menos 2 benchmarks</li>
+                        <li>Clique em "📈 Ver Gráficos"</li>
+                        <li>Gráficos comparativos aparecerão aqui</li>
+                    </ol>
+                    <p style="margin-top: 20px; font-size: 12px;">
+                        📊 Os gráficos são regenerados a cada teste
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Trabalho AV2 - Computação Paralela e Concorrente • 2026</p>
+            <p style="margin-top: 10px;">Gráficos gerados automaticamente pela aplicação</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Função para carregar e exibir gráficos
+        async function carregarGraficos() {
+            const graficos = [
+                { id: 'grafico-tempos', arquivo: 'grafico_tempos.png', status: 'status-tempos' },
+                { id: 'grafico-speedup', arquivo: 'grafico_speedup.png', status: 'status-speedup' },
+                { id: 'grafico-eficiencia', arquivo: 'grafico_eficiencia.png', status: 'status-eficiencia' },
+                { id: 'grafico-overhead', arquivo: 'grafico_overhead.png', status: 'status-overhead' },
+                { id: 'grafico-escalabilidade', arquivo: 'grafico_escalabilidade.png', status: 'status-escalabilidade' }
+            ];
+            
+            for (const grafico of graficos) {
+                try {
+                    const resposta = await fetch(`/resultados/${grafico.arquivo}`);
+                    
+                    if (resposta.ok) {
+                        const blob = await resposta.blob();
+                        const url = URL.createObjectURL(blob);
+                        
+                        const elemento = document.getElementById(grafico.id);
+                        elemento.innerHTML = `<img src="${url}" alt="Gráfico">`;
+                        
+                        // Marca como carregado
+                        const statusEl = document.getElementById(grafico.status);
+                        if (statusEl) {
+                            statusEl.className = 'status-item status-ok';
+                            statusEl.querySelector('.status-icon').textContent = '✓';
+                        }
+                    } else {
+                        throw new Error(`Status ${resposta.status}`);
+                    }
+                } catch (erro) {
+                    console.log(`Gráfico ${grafico.arquivo} não disponível ainda`);
+                    const statusEl = document.getElementById(grafico.status);
+                    if (statusEl) {
+                        statusEl.className = 'status-item status-loading';
+                        statusEl.querySelector('.status-icon').textContent = '⏳';
+                    }
+                }
+            }
+        }
+        
+        // Carrega gráficos ao iniciar
+        carregarGraficos();
+        
+        // Recarrega a cada 10 segundos
+        setInterval(carregarGraficos, 10000);
+    </script>
+</body>
+</html>
