@@ -6,7 +6,7 @@ Conecta aos servidores remotos e envia blocos de matrizes
 Uso:
     from socket_client import ClienteSocket
     
-    cliente = ClienteSocket('192.168.1.100', 5001)
+    cliente = ClienteSocket('172.19.9.43', 5001)  # IP DO SERVIDOR
     resultado = cliente.multiplicar_bloco(bloco_a, matriz_b, inicio_linha)
     cliente.fechar()
 """

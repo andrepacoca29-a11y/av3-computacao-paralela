@@ -446,6 +446,75 @@ def multiplicar_distribuido(A, B, num_nodos: int = 2) -> List[List[float]]:
 
 
 # ═══════════════════════════════════════════════════════════════════
+#  MULTIPLICAÇÃO DISTRIBUÍDA REAL (via Socket)
+# ═══════════════════════════════════════════════════════════════════
+
+def multiplicar_distribuido_real(A, B, ip_servidor: str = '172.19.9.43', porta: int = 5001) -> List[List[float]]:
+    """
+    Multiplicação distribuída REAL usando socket para se conectar a servidor remoto
+    A: M × N
+    B: N × P
+    Resultado: M × P
+    
+    IP_SERVIDOR PADRÃO: 172.19.9.43 (seu servidor)
+    CLIENTE: 172.19.9.44 (seu PC)
+    
+    Uso:
+        resultado = multiplicar_distribuido_real(A, B, ip_servidor='172.19.9.43')
+    """
+    # Validação
+    valida_a, msg_a = validar_matriz(A)
+    valida_b, msg_b = validar_matriz(B)
+    
+    if not valida_a:
+        raise ValueError(f"Matriz A inválida: {msg_a}")
+    if not valida_b:
+        raise ValueError(f"Matriz B inválida: {msg_b}")
+    
+    m, n = obter_dimensoes(A)
+    n_b, p = obter_dimensoes(B)
+    
+    if n != n_b:
+        raise ValueError(f"Dimensões incompatíveis: A é {m}×{n}, B é {n_b}×{p}")
+    
+    # Converte para numpy para usar socket_client
+    if not isinstance(A, np.ndarray):
+        A = np.array(A, dtype=np.float64)
+    if not isinstance(B, np.ndarray):
+        B = np.array(B, dtype=np.float64)
+    
+    # Importa cliente socket
+    try:
+        from socket_client import ClienteSocket
+    except ImportError:
+        print("❌ Erro: Não conseguiu importar ClienteSocket")
+        print("   Certifique-se de que socket_client.py está no mesmo diretório")
+        raise
+    
+    # Conecta ao servidor
+    cliente = ClienteSocket(ip_servidor, porta, timeout=30)
+    
+    if not cliente.conectar():
+        raise ConnectionError(f"Não conseguiu conectar ao servidor {ip_servidor}:{porta}")
+    
+    try:
+        # Envia toda a matriz A para o servidor processar
+        print(f"📤 Enviando matrizes para {ip_servidor}:{porta}...")
+        resultado = cliente.multiplicar_bloco(A, B, inicio_linha=0)
+        
+        if resultado and resultado.get('status') == 'sucesso':
+            C = resultado.get('resultado')
+            cliente.fechar()
+            return C
+        else:
+            raise RuntimeError(f"Erro no servidor: {resultado.get('mensagem', 'Desconhecido')}")
+    
+    except Exception as e:
+        cliente.fechar()
+        raise
+
+
+# ═══════════════════════════════════════════════════════════════════
 #  TESTES E BENCHMARKS
 # ═══════════════════════════════════════════════════════════════════
 
