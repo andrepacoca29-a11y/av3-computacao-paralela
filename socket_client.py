@@ -141,6 +141,7 @@ class ClienteSocket:
     def _enviar_comando(self, comando: dict) -> Optional[dict]:
         """
         Envia comando JSON e recebe resposta
+        Suporta dados de até 10MB
         
         Args:
             comando: Dicionário com comando
@@ -153,8 +154,20 @@ class ClienteSocket:
             json_str = json.dumps(comando)
             self.socket.sendall(json_str.encode('utf-8'))
             
-            # Receber resposta (máx 1MB)
-            resposta_json = self.socket.recv(1024 * 1024).decode('utf-8')
+            # Receber resposta em chunks (máx 10MB)
+            resposta_completa = b''
+            tamanho_chunk = 1024 * 1024  # 1MB por chunk
+            
+            while True:
+                chunk = self.socket.recv(tamanho_chunk)
+                if not chunk:
+                    break
+                resposta_completa += chunk
+                # Se recebeu menos que o tamanho do chunk, provavelmente é o final
+                if len(chunk) < tamanho_chunk:
+                    break
+            
+            resposta_json = resposta_completa.decode('utf-8')
             resposta = json.loads(resposta_json)
             
             return resposta

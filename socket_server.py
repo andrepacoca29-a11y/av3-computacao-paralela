@@ -155,14 +155,28 @@ class ServidorSocket:
         }
         self._enviar_json(conexao, resposta)
     
-    def _receber_dados(self, conexao: socket.socket, tamanho: int = 65536) -> str:
-        """Recebe dados JSON do cliente"""
+    def _receber_dados(self, conexao: socket.socket, tamanho: int = 10*1024*1024) -> str:
+        """
+        Recebe dados JSON do cliente
+        Suporta dados de até 10MB
+        """
         try:
-            dados = conexao.recv(tamanho).decode('utf-8')
-            if not dados:
+            # Recebe em chunks para dados muito grandes
+            dados_completos = b''
+            while True:
+                chunk = conexao.recv(tamanho)
+                if not chunk:
+                    break
+                dados_completos += chunk
+                # Se recebeu menos que tamanho, provavelmente é o final
+                if len(chunk) < tamanho:
+                    break
+            
+            if not dados_completos:
                 print("   ⚠️ Cliente desconectou sem enviar dados")
                 return None
-            return dados
+            
+            return dados_completos.decode('utf-8')
         except Exception as e:
             print(f"   ❌ Erro ao receber dados: {e}")
             return None
