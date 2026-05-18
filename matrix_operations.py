@@ -572,12 +572,17 @@ def executar_benchmark(
         raise ValueError(f"Erro na multiplicação paralela: {str(e)}")
     t_paralelo = time.perf_counter() - t1
     
-    # Distribuído
+    # Distribuído (REAL com Socket)
     t2 = time.perf_counter()
     try:
-        C_distribuido = multiplicar_distribuido(A, B, num_nodos)
+        # Usa socket real para conectar ao servidor 172.19.9.43
+        print("[+] Tentando conectar ao servidor distribuído (172.19.9.43:5001)...")
+        C_distribuido = multiplicar_distribuido_real(A, B, ip_servidor='172.19.9.43', porta=5001)
+        print("[✓] Multiplicação distribuída concluída!")
     except Exception as e:
-        raise ValueError(f"Erro na multiplicação distribuída: {str(e)}")
+        print(f"[⚠] Aviso: Distribuição real falhou, usando simulada: {str(e)}")
+        # Fallback para simulado se socket falhar
+        C_distribuido = multiplicar_distribuido(A, B, num_nodos)
     t_distribuido = time.perf_counter() - t2
     
     # Validação
