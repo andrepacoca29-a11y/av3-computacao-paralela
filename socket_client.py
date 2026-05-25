@@ -22,14 +22,6 @@ class ClienteSocket:
     """Cliente Socket para enviar blocos de matrizes a servidores remotos"""
     
     def __init__(self, host: str, port: int, timeout: int = 30):
-        """
-        Inicializa cliente socket
-        
-        Args:
-            host: IP do servidor remoto
-            port: Porta TCP do servidor
-            timeout: Timeout em segundos
-        """
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -37,12 +29,6 @@ class ClienteSocket:
         self.conectado = False
         
     def conectar(self) -> bool:
-        """
-        Conecta ao servidor remoto
-        
-        Returns:
-            True se conectado com sucesso, False caso contrário
-        """
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(self.timeout)
@@ -66,57 +52,27 @@ class ClienteSocket:
             return False
     
     def testar_conexao(self) -> bool:
-        """
-        Testa se a conexão está funcionando
-        
-        Returns:
-            True se servidor está respondendo
-        """
         if not self.conectado:
             return False
         
         try:
-            resposta = self._enviar_comando({
-                'operacao': 'teste'
-            })
-            
-            if resposta.get('status') == 'sucesso':
+            resposta = self._enviar_comando({'operacao': 'teste'})
+            if resposta and resposta.get('status') == 'sucesso':
                 print(f"✅ Servidor respondeu: {resposta.get('mensagem')}")
                 return True
             else:
                 print(f"❌ Resposta inválida: {resposta}")
                 return False
-                
         except Exception as e:
             print(f"❌ Erro ao testar conexão: {e}")
             return False
     
-    def multiplicar_bloco(self, 
-                         bloco_a: np.ndarray, 
-                         matriz_b: np.ndarray, 
-                         inicio_linha: int = 0) -> Optional[Dict[str, Any]]:
-        """
-        Envia bloco da matriz A e matriz B completa para multiplicar remotamente
-        
-        Args:
-            bloco_a: Bloco de linhas da matriz A (forma: linhas × colunas)
-            matriz_b: Matriz B completa
-            inicio_linha: Número da primeira linha do bloco em A original
-            
-        Returns:
-            Dict com resultado, ou None se erro
-            
-        Exemplo:
-            bloco_a = A[0:25]  # Primeiras 25 linhas
-            resultado = cliente.multiplicar_bloco(bloco_a, B, 0)
-        """
-        
+    def multiplicar_bloco(self, bloco_a: np.ndarray, matriz_b: np.ndarray, inicio_linha: int = 0) -> Optional[Dict[str, Any]]:
         if not self.conectado:
             print("❌ Não conectado ao servidor")
             return None
         
         try:
-            # Preparar comando
             comando = {
                 'operacao': 'multiplicar_bloco',
                 'bloco_a': bloco_a.tolist(),
@@ -124,13 +80,13 @@ class ClienteSocket:
                 'inicio_linha': inicio_linha
             }
             
-            # Enviar e receber resposta
             resposta = self._enviar_comando(comando)
             
-            if resposta.get('status') == 'sucesso':
+            if resposta and resposta.get('status') == 'sucesso':
                 return resposta
             else:
-                print(f"❌ Erro no servidor: {resposta.get('mensagem')}")
+                msg = resposta.get('mensagem') if resposta else "Sem resposta"
+                print(f"❌ Erro no servidor: {msg}")
                 return None
                 
         except Exception as e:
@@ -139,22 +95,11 @@ class ClienteSocket:
             return None
     
     def _enviar_comando(self, comando: dict) -> Optional[dict]:
-        """
-        Envia comando JSON e recebe resposta
-        Suporta dados de até 10MB
-        
-        Args:
-            comando: Dicionário com comando
-            
-        Returns:
-            Resposta JSON ou None se erro
-        """
+        """Envia comando JSON e recebe resposta com proteção contra fragmentação TCP"""
         try:
-            # Enviar comando
             json_str = json.dumps(comando)
             self.socket.sendall(json_str.encode('utf-8'))
             
-            # Receber resposta em chunks (máx 10MB)
             resposta_completa = b''
             tamanho_chunk = 1024 * 1024  # 1MB por chunk
             
@@ -162,15 +107,17 @@ class ClienteSocket:
                 chunk = self.socket.recv(tamanho_chunk)
                 if not chunk:
                     break
+                
                 resposta_completa += chunk
-                # Se recebeu menos que o tamanho do chunk, provavelmente é o final
-                if len(chunk) < tamanho_chunk:
-                    break
+                
+                try:
+                    resposta_json = resposta_completa.decode('utf-8')
+                    resposta = json.loads(resposta_json)
+                    return resposta
+                except json.JSONDecodeError:
+                    continue
             
-            resposta_json = resposta_completa.decode('utf-8')
-            resposta = json.loads(resposta_json)
-            
-            return resposta
+            return None
             
         except socket.timeout:
             print("❌ Timeout aguardando resposta do servidor")
@@ -180,7 +127,7 @@ class ClienteSocket:
             print(f"❌ Erro na comunicação: {e}")
             self.conectado = False
             return None
-    
+
     def fechar(self) -> None:
         """Fecha conexão com servidor"""
         if self.socket:
@@ -200,32 +147,12 @@ class GerenciadorServidoresSocket:
     """Gerencia múltiplas conexões socket com servidores remotos"""
     
     def __init__(self, servidores: List[Tuple[str, int]]):
-        """
-        Inicializa gerenciador
-        
-        Args:
-            servidores: Lista de tuplas (host, port)
-            
-        Exemplo:
-            servidores = [
-                ('192.168.1.100', 5001),
-                ('192.168.1.101', 5001)
-            ]
-            gerenciador = GerenciadorServidoresSocket(servidores)
-        """
         self.servidores = servidores
         self.clientes = {}
         self.conectados = 0
         
     def conectar_todos(self) -> int:
-        """
-        Conecta a todos os servidores
-        
-        Returns:
-            Número de conexões bem-sucedidas
-        """
         print(f"\n🔌 Conectando a {len(self.servidores)} servidores...")
-        
         for idx, (host, port) in enumerate(self.servidores):
             cliente = ClienteSocket(host, port)
             if cliente.conectar():
@@ -238,15 +165,8 @@ class GerenciadorServidoresSocket:
         return self.conectados
     
     def testar_todos(self) -> int:
-        """
-        Testa todos os servidores
-        
-        Returns:
-            Número de servidores respondendo
-        """
         print(f"\n🧪 Testando {len(self.clientes)} conexões...")
         respondendo = 0
-        
         for idx, cliente in self.clientes.items():
             if cliente and cliente.testar_conexao():
                 respondendo += 1
@@ -254,20 +174,7 @@ class GerenciadorServidoresSocket:
         print(f"✅ {respondendo}/{len(self.clientes)} servidores respondendo")
         return respondendo
     
-    def distribuir_blocos(self, 
-                         matriz_a: np.ndarray, 
-                         matriz_b: np.ndarray) -> Optional[np.ndarray]:
-        """
-        Distribui linhas de A entre servidores para multiplicar por B
-        
-        Args:
-            matriz_a: Matriz A
-            matriz_b: Matriz B
-            
-        Returns:
-            Matriz C resultado (A × B), ou None se erro
-        """
-        
+    def distribuir_blocos(self, matriz_a: np.ndarray, matriz_b: np.ndarray) -> Optional[np.ndarray]:
         if self.conectados == 0:
             print("❌ Nenhum servidor conectado")
             return None
@@ -276,7 +183,6 @@ class GerenciadorServidoresSocket:
             m, n = matriz_a.shape
             p = matriz_b.shape[1]
             
-            # Dividir A em blocos
             tam_bloco = m // self.conectados
             blocos = []
             
@@ -291,7 +197,6 @@ class GerenciadorServidoresSocket:
             
             print(f"\n📤 Distribuindo {m} linhas entre {self.conectados} servidores")
             
-            # Enviar blocos e receber resultados
             resultados = {}
             tempo_inicio = time.time()
             
@@ -319,7 +224,6 @@ class GerenciadorServidoresSocket:
             
             tempo_total = time.time() - tempo_inicio
             
-            # Remontar resultado
             if len(resultados) == self.conectados:
                 c = np.zeros((m, p))
                 for idx in range(self.conectados):
@@ -340,7 +244,6 @@ class GerenciadorServidoresSocket:
             return None
     
     def fechar_todos(self) -> None:
-        """Fecha todas as conexões"""
         print(f"\n🔌 Fechando {len(self.clientes)} conexões...")
         for cliente in self.clientes.values():
             if cliente:
@@ -349,5 +252,4 @@ class GerenciadorServidoresSocket:
         self.conectados = 0
     
     def __del__(self):
-        """Garante que conexões sejam fechadas"""
         self.fechar_todos()

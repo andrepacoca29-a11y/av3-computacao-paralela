@@ -1,21 +1,13 @@
 """
-SERVIDOR SOCKET PARA DISTRIBUIÇÃO REAL
+SERVIDOR SOCKET PARA DISTRIBUIÇÃO REAL (PYTHON PURO)
 
 Recebe blocos de matriz + matriz completa via socket
-Multiplica o bloco pela matriz
+Multiplica o bloco pela matriz usando Python Puro (sem Numpy)
 Retorna resultado
-
-Uso:
-    python socket_server.py --port 5001 --host 0.0.0.0
-    
-Exemplo de cliente conectando:
-    socket_client.connect('192.168.1.100', 5001)
-    socket_client.enviar_bloco(A_bloco, B, inicio_linha)
 """
 
 import socket
 import json
-import numpy as np
 import argparse
 import time
 import sys
@@ -25,14 +17,6 @@ class ServidorSocket:
     """Servidor Socket para multiplicação distribuída de matrizes"""
     
     def __init__(self, host: str = 'localhost', port: int = 5001, max_conexoes: int = 5):
-        """
-        Inicializa servidor socket
-        
-        Args:
-            host: IP para escutar (0.0.0.0 para aceitar de qualquer IP)
-            port: Porta TCP
-            max_conexoes: Número máximo de conexões simultâneas
-        """
         self.host = host
         self.port = port
         self.max_conexoes = max_conexoes
@@ -41,7 +25,6 @@ class ServidorSocket:
         self.tempo_total = 0
         
     def iniciar(self) -> None:
-        """Inicia o servidor socket"""
         self.servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
@@ -49,7 +32,7 @@ class ServidorSocket:
             self.servidor.bind((self.host, self.port))
             self.servidor.listen(self.max_conexoes)
             print(f"✅ Servidor Socket iniciado em {self.host}:{self.port}")
-            print(f"   Aguardando conexões...")
+            print(f"   Aguardando ligações...")
             
             self._aceitar_conexoes()
             
@@ -60,11 +43,10 @@ class ServidorSocket:
             self.parar()
     
     def _aceitar_conexoes(self) -> None:
-        """Loop principal: aceita e processa conexões"""
         try:
             while True:
                 conexao, endereco = self.servidor.accept()
-                print(f"\n📡 Cliente conectado de {endereco[0]}:{endereco[1]}")
+                print(f"\n📡 Cliente ligado de {endereco[0]}:{endereco[1]}")
                 
                 try:
                     self._processar_cliente(conexao, endereco)
@@ -72,17 +54,14 @@ class ServidorSocket:
                     print(f"   ❌ Erro ao processar cliente: {e}")
                 finally:
                     conexao.close()
-                    print(f"   ✓ Conexão encerrada")
+                    print(f"   ✓ Ligação encerrada")
                     
         except KeyboardInterrupt:
-            print("\n\n🛑 Servidor interrompido pelo usuário")
+            print("\n\n🛑 Servidor interrompido pelo utilizador")
         except Exception as e:
             print(f"\n❌ Erro fatal: {e}")
     
     def _processar_cliente(self, conexao: socket.socket, endereco: Tuple) -> None:
-        """Processa requisição de um cliente"""
-        
-        # Receber dados do cliente (JSON)
         dados_json = self._receber_dados(conexao)
         if not dados_json:
             return
@@ -99,37 +78,45 @@ class ServidorSocket:
                 self._enviar_erro(conexao, f"Operação desconhecida: {operacao}")
                 
         except json.JSONDecodeError as e:
-            print(f"   ❌ Erro ao decodificar JSON: {e}")
+            print(f"   ❌ Erro ao descodificar JSON: {e}")
             self._enviar_erro(conexao, "JSON inválido")
         except Exception as e:
             print(f"   ❌ Erro ao processar: {e}")
             self._enviar_erro(conexao, str(e))
     
     def _multiplicar_bloco(self, conexao: socket.socket, dados: dict, endereco: Tuple) -> None:
-        """Multiplica bloco de A × B completa"""
+        """Multiplica bloco de A × B completa usando listas nativas do Python"""
         
         inicio_linha = dados.get('inicio_linha', 0)
-        bloco_a = np.array(dados.get('bloco_a', []))
-        matriz_b = np.array(dados.get('matriz_b', []))
+        
+        # Obter as listas puras sem numpy
+        bloco_a = dados.get('bloco_a', [])
+        matriz_b = dados.get('matriz_b', [])
+        
+        linhas_a = len(bloco_a)
         
         print(f"   📊 Multiplicando bloco:")
-        print(f"      Bloco A: {bloco_a.shape}")
-        print(f"      Matriz B: {matriz_b.shape}")
-        print(f"      Linhas: {inicio_linha}-{inicio_linha + bloco_a.shape[0]}")
+        print(f"      Linhas recebidas: {linhas_a}")
+        print(f"      A iniciar cálculo em Python puro...")
         
         try:
             tempo_inicio = time.time()
             
-            # Multiplicar bloco × B
-            resultado = np.dot(bloco_a, matriz_b)
+            # Importar a sua função pura já construída
+            from matrix_operations import multiplicar_serial
+            
+            # Cálculo intensivo em Python puro
+            resultado = multiplicar_serial(bloco_a, matriz_b)
             
             tempo_decorrido = time.time() - tempo_inicio
             
-            # Enviar resposta
+            linhas_c = len(resultado)
+            colunas_c = len(resultado[0]) if linhas_c > 0 else 0
+            
             resposta = {
                 'status': 'sucesso',
-                'resultado': resultado.tolist(),
-                'forma': resultado.shape,
+                'resultado': resultado,
+                'forma': [linhas_c, colunas_c],
                 'inicio_linha': inicio_linha,
                 'tempo_ms': tempo_decorrido * 1000
             }
@@ -146,43 +133,41 @@ class ServidorSocket:
             self._enviar_erro(conexao, str(e))
     
     def _responder_teste(self, conexao: socket.socket) -> None:
-        """Responde para teste de conexão"""
         resposta = {
             'status': 'sucesso',
-            'mensagem': 'Servidor conectado e funcionando',
+            'mensagem': 'Servidor ligado e a funcionar',
             'operacoes': self.operacoes_processadas,
             'tempo_total_ms': self.tempo_total * 1000
         }
         self._enviar_json(conexao, resposta)
     
     def _receber_dados(self, conexao: socket.socket, tamanho: int = 10*1024*1024) -> str:
-        """
-        Recebe dados JSON do cliente
-        Suporta dados de até 10MB
-        """
+        """Recebe dados garantindo a leitura completa dos pacotes TCP fragmentados"""
         try:
-            # Recebe em chunks para dados muito grandes
             dados_completos = b''
             while True:
                 chunk = conexao.recv(tamanho)
                 if not chunk:
                     break
+                
                 dados_completos += chunk
-                # Se recebeu menos que tamanho, provavelmente é o final
-                if len(chunk) < tamanho:
-                    break
+                
+                try:
+                    texto_json = dados_completos.decode('utf-8')
+                    json.loads(texto_json)
+                    return texto_json
+                except json.JSONDecodeError:
+                    continue
             
             if not dados_completos:
-                print("   ⚠️ Cliente desconectou sem enviar dados")
+                print("   ⚠️ Cliente desligou sem enviar dados")
                 return None
-            
-            return dados_completos.decode('utf-8')
+                
         except Exception as e:
             print(f"   ❌ Erro ao receber dados: {e}")
             return None
     
     def _enviar_json(self, conexao: socket.socket, dados: dict) -> None:
-        """Envia resposta JSON para cliente"""
         try:
             json_str = json.dumps(dados)
             conexao.sendall(json_str.encode('utf-8'))
@@ -190,20 +175,16 @@ class ServidorSocket:
             print(f"   ❌ Erro ao enviar resposta: {e}")
     
     def _enviar_erro(self, conexao: socket.socket, mensagem: str) -> None:
-        """Envia mensagem de erro para cliente"""
         erro = {'status': 'erro', 'mensagem': mensagem}
         self._enviar_json(conexao, erro)
     
     def parar(self) -> None:
-        """Para o servidor"""
         if self.servidor:
             self.servidor.close()
             print("\n🛑 Servidor encerrado")
 
 
 def main():
-    """Função principal - inicializa servidor"""
-    
     parser = argparse.ArgumentParser(
         description='Servidor Socket para Multiplicação Distribuída de Matrizes'
     )
@@ -212,7 +193,7 @@ def main():
     parser.add_argument('--port', type=int, default=5001,
                        help='Porta TCP (padrão: 5001)')
     parser.add_argument('--max-conexoes', type=int, default=5,
-                       help='Máximo de conexões simultâneas (padrão: 5)')
+                       help='Máximo de ligações simultâneas (padrão: 5)')
     
     args = parser.parse_args()
     
@@ -221,7 +202,7 @@ def main():
     print("=" * 60)
     print(f"Host: {args.host}")
     print(f"Porta: {args.port}")
-    print(f"Máx conexões: {args.max_conexoes}")
+    print(f"Máx ligações: {args.max_conexoes}")
     print("=" * 60)
     
     servidor = ServidorSocket(
@@ -231,7 +212,6 @@ def main():
     )
     
     servidor.iniciar()
-
 
 if __name__ == '__main__':
     main()
