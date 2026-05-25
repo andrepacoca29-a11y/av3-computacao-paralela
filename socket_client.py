@@ -175,6 +175,8 @@ class GerenciadorServidoresSocket:
         return respondendo
     
     def distribuir_blocos(self, matriz_a: np.ndarray, matriz_b: np.ndarray) -> Optional[np.ndarray]:
+        import concurrent.futures # Importação necessária para a concorrência
+        
         if self.conectados == 0:
             print("❌ Nenhum servidor conectado")
             return None
@@ -183,6 +185,7 @@ class GerenciadorServidoresSocket:
             m, n = matriz_a.shape
             p = matriz_b.shape[1]
             
+            # Dividir A em blocos
             tam_bloco = m // self.conectados
             blocos = []
             
@@ -195,35 +198,46 @@ class GerenciadorServidoresSocket:
                     'bloco': matriz_a[inicio:fim]
                 })
             
-            print(f"\n📤 Distribuindo {m} linhas entre {self.conectados} servidores")
+            print(f"\n📤 Distribuindo {m} linhas entre {self.conectados} servidores (CONCORRENTE)")
             
             resultados = {}
             tempo_inicio = time.time()
             
-            for idx, bloco_info in enumerate(blocos):
+            # Função auxiliar que a Thread vai executar
+            def processar_bloco(idx, bloco_info):
                 cliente = self.clientes.get(idx)
                 if not cliente or not cliente.conectado:
-                    print(f"   ⚠️ Servidor {idx} não conectado, pulando...")
-                    continue
+                    return idx, None
                 
                 inicio = bloco_info['inicio']
                 bloco = bloco_info['bloco']
                 
-                print(f"   📡 Enviando bloco {idx} (linhas {inicio}-{bloco_info['fim']})")
-                
+                print(f"   📡 A enviar bloco {idx} (linhas {inicio}-{bloco_info['fim']})...")
                 resposta = cliente.multiplicar_bloco(bloco, matriz_b, inicio)
                 
                 if resposta and resposta.get('status') == 'sucesso':
-                    resultados[idx] = {
+                    print(f"      ✅ Recebido resultado do bloco {idx}")
+                    return idx, {
                         'inicio': inicio,
                         'resultado': np.array(resposta.get('resultado', []))
                     }
-                    print(f"      ✅ Recebido resultado")
-                else:
-                    print(f"      ❌ Erro ao receber resultado")
+                return idx, None
+
+            # Dispara todos os pedidos AO MESMO TEMPO
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.conectados) as executor:
+                futuros = []
+                for idx, bloco_info in enumerate(blocos):
+                    futuros.append(executor.submit(processar_bloco, idx, bloco_info))
+                
+                # Aguarda e recolhe os resultados assim que chegam
+                for futuro in concurrent.futures.as_completed(futuros):
+                    idx, res = futuro.result()
+                    if res:
+                        resultados[idx] = res
             
             tempo_total = time.time() - tempo_inicio
             
+            # Remontar o resultado
             if len(resultados) == self.conectados:
                 c = np.zeros((m, p))
                 for idx in range(self.conectados):
@@ -233,7 +247,7 @@ class GerenciadorServidoresSocket:
                         fim = inicio + resultado.shape[0]
                         c[inicio:fim] = resultado
                 
-                print(f"\n✅ Distribuição concluída em {tempo_total*1000:.2f}ms")
+                print(f"\n✅ Distribuição concorrente concluída em {tempo_total*1000:.2f}ms")
                 return c
             else:
                 print(f"❌ Apenas {len(resultados)}/{self.conectados} resultados")
