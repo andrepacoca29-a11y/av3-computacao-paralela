@@ -24,7 +24,7 @@ Você deve ver:
 
 ---
 
-### **Passo 2: Inicie o CLIENTE (seu PC - 172.19.9.44)**
+### **Passo 2: Inicie o CLIENTE (seu PC - 10.50.232.28)**
 
 ```bash
 python app.py
@@ -66,7 +66,7 @@ Clique em **▶ Executar**
 ✅ Servidor Socket iniciado em 0.0.0.0:5001
    Aguardando conexões...
 
-📡 Cliente conectado de 172.19.9.44:54321
+📡 Cliente conectado de 10.50.232.28:54321
    Processando multiplicação de bloco...
    ✓ Conexão encerrada
 ```

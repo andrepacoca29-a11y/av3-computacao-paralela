@@ -4,7 +4,7 @@
 
 | Computador | IP | Papel | Porta |
 |------------|----|----|-------|
-| **Seu PC (Cliente)** | `172.19.9.44` | Roda `app.py` | 5000 |
+| **Seu PC (Cliente)** | `10.50.232.28` | Roda `app.py` | 5000 |
 | **Outro PC (Servidor)** | `172.19.9.43` | Roda `socket_server.py` | 5001 |
 
 ---
@@ -29,9 +29,9 @@ python socket_server.py --host 0.0.0.0 --port 5001
 
 ---
 
-## 💻 PASSO 2: Iniciar o CLIENTE (Seu PC com IP 172.19.9.44)
+## 💻 PASSO 2: Iniciar o CLIENTE (Seu PC com IP 10.50.232.28)
 
-Abra PowerShell **no seu PC** (172.19.9.44) e execute:
+Abra PowerShell **no seu PC** (10.50.232.28) e execute:
 
 ```bash
 cd C:\Users\[usuario]\Downloads\Trabalho_AV2_Comp_paralela_concorrnte
@@ -48,7 +48,7 @@ python app.py
 
 ## 🌐 PASSO 3: Acessar a Interface
 
-No **seu PC** (172.19.9.44), abra o navegador e acesse:
+No **seu PC** (10.50.232.28), abra o navegador e acesse:
 
 ```
 http://localhost:5000
@@ -92,7 +92,7 @@ Você verá 3 tempos de execução:
 Se quiser validar antes, use o script de teste:
 
 ```bash
-# No seu PC (172.19.9.44)
+# No seu PC (10.50.232.28)
 python teste_distribuido.py
 ```
 
@@ -183,7 +183,7 @@ Eficiência: 83.5%
 ## 🎓 RESUMO:
 
 ```
-SEU PC (172.19.9.44)
+SEU PC (10.50.232.28)
     ↓
   app.py (http://localhost:5000)
     ↓
@@ -206,13 +206,13 @@ app.py exibe resultado + gráficos
 
 ## ✨ Está tudo pronto!
 
-1. ✅ IPs configurados: 172.19.9.44 (cliente) e 172.19.9.43 (servidor)
+1. ✅ IPs configurados: 10.50.232.28 (cliente) e 172.19.9.43 (servidor)
 2. ✅ socket_client.py atualizado com IP do servidor
 3. ✅ Função de distribuição real criada
 4. ✅ Script de teste disponível
 
 **Próximos passos:**
 1. Inicie servidor: `python socket_server.py` (172.19.9.43)
-2. Inicie cliente: `python app.py` (172.19.9.44)
+2. Inicie cliente: `python app.py` (10.50.232.28)
 3. Acesse: `http://localhost:5000`
 4. Clique em **▶ Executar** para começar!

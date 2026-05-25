@@ -29,7 +29,7 @@
 python socket_server.py --host 0.0.0.0 --port 5001
 ```
 
-### **Cliente (seu PC - 172.19.9.44):**
+### **Cliente (seu PC - 10.50.232.28):**
 ```bash
 python app.py
 # Abra: http://localhost:5000
@@ -49,7 +49,7 @@ Teste com diferentes tamanhos:
 
 ### ✅ Servidor:
 ```
-📡 Cliente conectado de 172.19.9.44:54321
+📡 Cliente conectado de 10.50.232.28:54321
    Processando multiplicação de bloco...
    ✓ Conexão encerrada
 ```

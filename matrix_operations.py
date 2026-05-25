@@ -449,27 +449,28 @@ def multiplicar_distribuido(A, B, num_nodos: int = 2) -> List[List[float]]:
 #  MULTIPLICAÇÃO DISTRIBUÍDA REAL (via Socket)
 # ═══════════════════════════════════════════════════════════════════
 
-def multiplicar_distribuido_real(A, B, ip_servidor: str = '172.19.9.43', porta: int = 5001) -> List[List[float]]:
+def multiplicar_distribuido_real(A, B, servidores: list = None) -> List[List[float]]:
     """
-    Multiplicação distribuída REAL usando socket para se conectar a servidor remoto
-    A: M × N
-    B: N × P
-    Resultado: M × P
-    
-    IP_SERVIDOR PADRÃO: 172.19.9.43 (seu servidor)
-    CLIENTE: 172.19.9.44 (seu PC)
-    
-    Uso:
-        resultado = multiplicar_distribuido_real(A, B, ip_servidor='172.19.9.43')
+    Multiplicação distribuída REAL usando socket.
+    Divide a matriz A em blocos e envia para múltiplos servidores.
     """
-    # Validação
+    import numpy as np
+
+    # 1. DEFINA OS SERVIDORES AQUI
+    if servidores is None:
+        # Coloque os IPs dos computadores que vão ajudar no cálculo
+        # Se você quiser testar na mesma máquina, use '127.0.0.1' com portas diferentes
+        servidores = [
+            ('172.19.9.43', 5001), # PC 1 (Exemplo: outro computador)
+            ('10.50.232.28', 5001) # PC 2 (Exemplo: seu próprio PC rodando o server em outro terminal)
+        ]
+        
+    # 2. Validações
     valida_a, msg_a = validar_matriz(A)
     valida_b, msg_b = validar_matriz(B)
     
-    if not valida_a:
-        raise ValueError(f"Matriz A inválida: {msg_a}")
-    if not valida_b:
-        raise ValueError(f"Matriz B inválida: {msg_b}")
+    if not valida_a: raise ValueError(f"Matriz A inválida: {msg_a}")
+    if not valida_b: raise ValueError(f"Matriz B inválida: {msg_b}")
     
     m, n = obter_dimensoes(A)
     n_b, p = obter_dimensoes(B)
@@ -477,41 +478,33 @@ def multiplicar_distribuido_real(A, B, ip_servidor: str = '172.19.9.43', porta: 
     if n != n_b:
         raise ValueError(f"Dimensões incompatíveis: A é {m}×{n}, B é {n_b}×{p}")
     
-    # Converte para numpy para usar socket_client
-    if not isinstance(A, np.ndarray):
-        A = np.array(A, dtype=np.float64)
-    if not isinstance(B, np.ndarray):
-        B = np.array(B, dtype=np.float64)
+    # 3. Converte para numpy para usar o socket_client
+    if not isinstance(A, np.ndarray): A = np.array(A, dtype=np.float64)
+    if not isinstance(B, np.ndarray): B = np.array(B, dtype=np.float64)
     
-    # Importa cliente socket
+    # 4. Importa o GERENCIADOR (Essa é a grande correção!)
     try:
-        from socket_client import ClienteSocket
+        from socket_client import GerenciadorServidoresSocket
     except ImportError:
-        print("❌ Erro: Não conseguiu importar ClienteSocket")
-        print("   Certifique-se de que socket_client.py está no mesmo diretório")
-        raise
+        raise ImportError("Erro: Não conseguiu importar GerenciadorServidoresSocket")
     
-    # Conecta ao servidor
-    cliente = ClienteSocket(ip_servidor, porta, timeout=30)
+    # 5. Conecta em todos os servidores disponíveis na lista
+    gerenciador = GerenciadorServidoresSocket(servidores)
+    conectados = gerenciador.conectar_todos()
     
-    if not cliente.conectar():
-        raise ConnectionError(f"Não conseguiu conectar ao servidor {ip_servidor}:{porta}")
+    if conectados == 0:
+        raise ConnectionError("Não foi possível conectar a nenhum servidor! Verifique se os servers estão rodando.")
     
     try:
-        # Envia toda a matriz A para o servidor processar
-        print(f"📤 Enviando matrizes para {ip_servidor}:{porta}...")
-        resultado = cliente.multiplicar_bloco(A, B, inicio_linha=0)
+        # 6. O gerenciador FATIA a matriz A e distribui a carga!
+        matriz_c_numpy = gerenciador.distribuir_blocos(A, B)
         
-        if resultado and resultado.get('status') == 'sucesso':
-            C = resultado.get('resultado')
-            cliente.fechar()
-            return C
+        if matriz_c_numpy is not None:
+            return matriz_c_numpy.tolist()
         else:
-            raise RuntimeError(f"Erro no servidor: {resultado.get('mensagem', 'Desconhecido')}")
-    
-    except Exception as e:
-        cliente.fechar()
-        raise
+            raise RuntimeError("Erro ao agregar os resultados distribuídos.")
+    finally:
+        gerenciador.fechar_todos()
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -575,13 +568,16 @@ def executar_benchmark(
     # Distribuído (REAL com Socket)
     t2 = time.perf_counter()
     try:
-        # Usa socket real para conectar ao servidor 172.19.9.43
-        print("[+] Tentando conectar ao servidor distribuído (172.19.9.43:5001)...")
-        C_distribuido = multiplicar_distribuido_real(A, B, ip_servidor='172.19.9.43', porta=5001)
+        # Gera a lista de servidores locais baseada no número de nodos da interface
+        portas_base = [5001, 5002, 5003, 5004, 5005]
+        servidores_locais = [('127.0.0.1', portas_base[i]) for i in range(num_nodos)]
+        
+        print(f"[+] Conectando a {num_nodos} servidores distribuídos...")
+        # Usa a nossa função corrigida passando a lista gerada
+        C_distribuido = multiplicar_distribuido_real(A, B, servidores=servidores_locais)
         print("[✓] Multiplicação distribuída concluída!")
     except Exception as e:
         print(f"[⚠] Aviso: Distribuição real falhou, usando simulada: {str(e)}")
-        # Fallback para simulado se socket falhar
         C_distribuido = multiplicar_distribuido(A, B, num_nodos)
     t_distribuido = time.perf_counter() - t2
     

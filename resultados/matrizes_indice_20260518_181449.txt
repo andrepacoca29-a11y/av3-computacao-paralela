@@ -1,0 +1,13 @@
+ÍNDICE DE MATRIZES
+============================================================
+
+Data/Hora: 18/05/2026 18:14:50
+Timestamp: 20260518_181449
+
+Matriz A (400×100): resultados\matriz_A_20260518_181449.csv
+Matriz B (100×400): resultados\matriz_B_20260518_181449.csv
+Matriz C (400×400): resultados\matriz_C_resultado_20260518_181449.csv
+
+============================================================
+Formato: CSV (valores separados por vírgula)
+Decimais: 4 casas
